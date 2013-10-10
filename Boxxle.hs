@@ -13,13 +13,16 @@ import Control.Monad.Reader
 import Timer
 
 -- game data
-room1 = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+levels = [
+	Room {
+		tiles = 
+		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,2,2,1,0,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,2,0,1,0,1,4,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,0,1,0,1,4,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,1,1,0,1,1,1,4,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,1,1,0,0,0,0,4,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0]
@@ -29,11 +32,35 @@ room1 = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		]
+		,boxes = [(Coord 5 5), (Coord 6 5), (Coord 5 6)]
+		,startPos = (Coord 4 4)
+	}
+	,Room {
+		tiles = 
+		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,4,4,0,0,0,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,4,4,0,0,0,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		]
+		,boxes = [(Coord 5 7), (Coord 8 7), (Coord 7 6), (Coord 7 5)]
+		,startPos = (Coord 6 4)
+	}]
 
 -- type defines
 data Coord = Coord { x :: Int, y :: Int }
 
-data Room = Room { tiles :: [[Int]] }
+data Room = Room { tiles :: [[Int]], boxes :: [Coord], startPos :: Coord }
 
 data GameData = GameData {
 	timer :: Timer,
@@ -77,22 +104,11 @@ modifyTimerM act = getTimer >>= act >>= putTimer
 getRoom :: MonadState GameData m => m Room
 getRoom = liftM currentRoom get
 
-putRoom :: MonadState GameData m => Room -> m ()
-putRoom t = modify $ \s -> s { currentRoom = t }
-
-modifyRoomM :: MonadState GameData m => (Room -> m Room) -> m ()
-modifyRoomM act = getRoom >>= act >>= putRoom
-
-modifyRoom :: MonadState GameData m => (Room -> Room) -> m ()
-modifyRoom fn = fn `liftM` getRoom >>= putRoom
-
-
 getScreen :: MonadReader GameConfig m => m Surface
 getScreen = liftM screen ask
 
 getSprites :: MonadReader GameConfig m => m Surface
 getSprites = liftM sprites ask
-
 
 
 -- main functions
@@ -103,7 +119,8 @@ newGame = do
 	screen <- getVideoSurface
 	sprites <- loadBMP "img/boxxle.bmp"
 	timer <- start defaultTimer
-	return (GameConfig screen sprites , GameData timer (Room room1) (Coord 4 4))
+	return (GameConfig screen sprites, GameData timer level (startPos level))
+		where level = levels !! 1
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
@@ -132,6 +149,10 @@ drawRoom screen sprites room = mapM_ (\r -> drawRow screen sprites r) [0..14]
 								where drawRow screen sprites r = 
 									mapM_ (\(x, n) -> drawSprite screen sprites n (x * 32) (r * 32)) (coord (room !! r))
 										where coord row = map (\i -> (i, row !! i)) [0..19]
+
+
+drawBoxes :: Surface -> Surface -> [Coord] -> IO()
+drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites 2 ((x c) * 32) ((y c) * 32) ) boxes
 
 
 emptyWorld :: Int -> Int -> a -> [[a]]
@@ -164,9 +185,11 @@ loop = do
 	screen <- getScreen
 	sprites <- getSprites
 	pos <- getPlayerPos
+	room <- getRoom
 
 	liftIO $ do
-		drawRoom screen sprites room1
+		drawRoom screen sprites (tiles room)
+		drawBoxes screen sprites (boxes room)
 		drawPlayer screen sprites (x pos) (y pos)
 		Graphics.UI.SDL.flip screen
 
