@@ -3,6 +3,8 @@
 import Graphics.UI.SDL
 import Graphics.UI.SDL.Video
 
+{-import Graphics.UI.SDL.Mixer-}
+
 import Data.Word
 import Data.Maybe
 
@@ -58,6 +60,12 @@ levels = [
 		,targets = [(Coord 6 6), (Coord 7 6), (Coord 6 7), (Coord 7 7)]
 		,startPos = (Coord 6 4)
 	}]
+
+tEmpty 	= 0
+tBrick 	= 1
+tBox 	= 2
+tPlayer = 3
+tTarget	= 4
 
 -- type defines
 data Coord = Coord { x :: Int, y :: Int }
@@ -139,13 +147,6 @@ drawSprite screen sprites n x y = blitSurface
 													where dst = Just (Rect x y 32 32)
 
 
-drawPlayer :: Surface -> Surface -> Int -> Int -> IO Bool
-drawPlayer screen sprites x y = blitSurface sprites src screen dst
-								where
-									src = (getSpriteSheetOffset 3)
-									dst = Just (Rect (x * 32) (y * 32) 32 32)
-
-
 drawRoom :: Surface -> Surface -> [[Int]] -> IO()
 drawRoom screen sprites room = mapM_ (\r -> drawRow screen sprites r) [0..14]
 								where drawRow screen sprites r = 
@@ -153,36 +154,44 @@ drawRoom screen sprites room = mapM_ (\r -> drawRow screen sprites r) [0..14]
 										where coord row = map (\i -> (i, row !! i)) [0..19]
 
 
+drawPlayer :: Surface -> Surface -> Int -> Int -> IO Bool
+drawPlayer screen sprites x y = blitSurface sprites src screen dst
+								where
+									src = (getSpriteSheetOffset tPlayer)
+									dst = Just (Rect (x * 32) (y * 32) 32 32)
+
+
 drawBoxes :: Surface -> Surface -> [Coord] -> IO()
-drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites 2 ((x c) * 32) ((y c) * 32) ) boxes
+drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites tBox ((x c) * 32) ((y c) * 32) ) boxes
+
 
 drawTargets :: Surface -> Surface -> [Coord] -> IO()
-drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites 4 ((x c) * 32) ((y c) * 32) ) targets
+drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTarget ((x c) * 32) ((y c) * 32) ) targets
 
 
 emptyWorld :: Int -> Int -> a -> [[a]]
 emptyWorld x y = replicate y . replicate x
 
 
-handleInput :: Event -> Coord -> Coord
-handleInput (KeyDown (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c
-handleInput (KeyDown (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c
-handleInput (KeyDown (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c
-handleInput (KeyDown (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c
+handleKeyboard :: Event -> Coord -> Coord
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c
+handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c
+handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c
+handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c
 
-handleInput (KeyUp (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c { x = x, y = y - 1 }
-handleInput (KeyUp (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c { x = x, y = y + 1 }
-handleInput (KeyUp (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c { x = x - 1, y = y }
-handleInput (KeyUp (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c { x = x + 1, y = y }
+handleKeyboard (KeyUp (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c { x = x, y = y - 1 }
+handleKeyboard (KeyUp (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c { x = x, y = y + 1 }
+handleKeyboard (KeyUp (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c { x = x - 1, y = y }
+handleKeyboard (KeyUp (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c { x = x + 1, y = y }
 
-handleInput _ d = d
+handleKeyboard _ d = d
 
 
 loop :: GameEnv ()
 loop = do
 
 	modifyTimerM $ liftIO . start
-	quit <- whileEvents $ modifyPlayerPos . handleInput
+	quit <- whileEvents $ modifyPlayerPos . handleKeyboard
 	
 	timer <- getTimer
 	screen <- getScreen
