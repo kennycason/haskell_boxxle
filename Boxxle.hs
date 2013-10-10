@@ -68,9 +68,9 @@ tPlayer = 3
 tTarget	= 4
 
 -- type defines
-data Direction = Up | Down | Left | Right deriving (Eq, Enum)
+data Direction = UP | DOWN | LEFT | RIGHT deriving (Eq, Enum)
 
-data Move = Move { dir :: Direction, newPos :: Coord }
+data Move = Move { dir :: Direction, dx :: Int, dy :: Int }
 
 data Coord = Coord { x :: Int, y :: Int }
 
@@ -184,14 +184,14 @@ collide c1 c2 = ((x c1) == (x c2)) && ((y c1) == (y c2))
 
 
 movePlayer :: Move -> GameData -> GameData
-movePlayer move gamedata  = gamedata
+movePlayer move gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord { x = x + (dx move), y = y + (dy move)} }
 
 
 handleKeyboard :: Event -> GameData -> GameData
-handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x, y = y - 1 } }
-handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x, y = y + 1 } }
-handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x - 1, y = y } }
-handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x + 1, y = y } }
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = movePlayer Move { dir = UP, dx = 0, dy = -1 } gd
+handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = movePlayer Move { dir = DOWN, dx = 0, dy = 1 } gd
+handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = movePlayer Move { dir = LEFT, dx = -1, dy = 0 } gd
+handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = movePlayer Move { dir = UP, dx = 1, dy = 0 } gd
 handleKeyboard _ d = d
 
 
@@ -217,8 +217,8 @@ loop = do
 
 	liftIO $ do
 		drawRoom screen sprites (tiles room)
-		drawBoxes screen sprites (boxes room)
 		drawTargets screen sprites (targets room)
+		drawBoxes screen sprites (boxes room)
 		drawPlayer screen sprites (x pos) (y pos)
 		Graphics.UI.SDL.flip screen
 
@@ -246,5 +246,5 @@ runLoop = evalStateT . runReaderT loop
 
 
 main = withInit [InitEverything] $ do -- withInit calls quit for us.
-	(gConf, gData) <- newGame 1
-	runLoop gConf gData
+	(gc, gd) <- newGame 2
+	runLoop gc gd
