@@ -185,6 +185,9 @@ drawTargets :: Surface -> Surface -> [Coord] -> IO()
 drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTarget ((x c) * 32) ((y c) * 32) ) targets
 
 
+isWin :: [Coord] -> [Coord] -> Bool
+isWin boxes targets = False
+
 collide :: Coord -> Coord -> Bool
 collide c1 c2 = ((x c1) == (x c2)) && ((y c1) == (y c2))
 
@@ -193,8 +196,8 @@ offsetCoord c@Coord{ x = x, y = y } move = c { x = x + (dx move), y = y + (dy mo
 
 
 collideWithWorld :: Coord -> Room -> Bool
-collideWithWorld c room = foldr (||) False (map (collide c) (walls room))
-
+collideWithWorld c room = (foldr (||) False (map (collide c) (walls room)))
+							
 
 movePlayer :: Move -> GameData -> GameData
 movePlayer move gd 	| collideWithWorld (offsetCoord origPos move) (room gd) = gd
@@ -202,12 +205,35 @@ movePlayer move gd 	| collideWithWorld (offsetCoord origPos move) (room gd) = gd
 					where origPos = (playerPos gd)
 
 
+checkBox :: Room -> Coord -> Move -> Coord -> Coord
+checkBox room pos move box@Coord { x = x, y = y } 	
+								| collided && d == UP && not boxCollided = box {y = y - 1}
+								| collided && d == DOWN && not boxCollided = box {y = y + 1}
+								| collided && d == LEFT && not boxCollided = box {x = x - 1}
+								| collided && d == RIGHT && not boxCollided = box {x = x + 1}
+								| otherwise = box
+									where 
+										collided = collide pos box -- player collided
+										boxCollided = (collideWithWorld (offsetCoord box move) room)
+										d = (dir move)
+
+
+checkBoxes :: Room -> Coord -> Move -> [Coord] -> [Coord]
+checkBoxes room pos move boxes = map (checkBox room pos move) boxes
+
+moveBox :: Move -> GameData -> GameData
+moveBox move gd@GameData{ room = room@Room {boxes = boxes} } = gd { room = room { boxes = (checkBoxes room origPos move boxes) } }
+																where origPos = (playerPos gd)
+
 handleKeyboard :: Event -> GameData -> GameData
-handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = movePlayer move gd
-												where move = Move { dir = UP, dx = 0, dy = -1 }
-handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = movePlayer Move { dir = DOWN, dx = 0, dy = 1 } gd
-handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = movePlayer Move { dir = LEFT, dx = -1, dy = 0 } gd
-handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = movePlayer Move { dir = UP, dx = 1, dy = 0 } gd
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = ((moveBox move).(movePlayer move)) gd
+													where move = Move { dir = UP, dx = 0, dy = -1 }
+handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = ((moveBox move).(movePlayer move)) gd
+													where move = Move { dir = DOWN, dx = 0, dy = 1 }
+handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((moveBox move).(movePlayer move)) gd
+													where move = Move { dir = LEFT, dx = -1, dy = 0 }
+handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((moveBox move).(movePlayer move)) gd
+													where move = Move { dir = RIGHT, dx = 1, dy = 0 }
 handleKeyboard _ d = d
 
 
