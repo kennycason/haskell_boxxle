@@ -7,6 +7,7 @@ import Graphics.UI.SDL.Video
 
 import Data.Word
 import Data.Maybe
+import Data.Array
 
 import Control.Monad
 import Control.Monad.State
@@ -34,11 +35,23 @@ levels = [
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		]
+		,
+		walls = -- TODO create a function that maps [[Int]] -> [Coord]
+		[(Coord 3 3), (Coord 4 3), (Coord 5 3), (Coord 6 3), (Coord 7 3)
+		,(Coord 3 4),                                        (Coord 7 4)	
+		,(Coord 3 5),                                        (Coord 7 5),              (Coord 9 5), (Coord 10 5), (Coord 11 5)	
+		,(Coord 3 6),                                        (Coord 7 6),              (Coord 9 6),               (Coord 11 6)	
+		,(Coord 3 7),(Coord 4 7), (Coord 5 7),               (Coord 7 7), (Coord 8 7), (Coord 9 7),               (Coord 11 7)	
+		            ,(Coord 4 8), (Coord 5 8),                                                                    (Coord 11 8)	
+		            ,(Coord 4 9),                                         (Coord 8 9),                            (Coord 11 9)
+		            ,(Coord 4 10),                                        (Coord 8 10),(Coord 9 10),(Coord 10 10),(Coord 11 10)	
+		            ,(Coord 4 11),(Coord 5 11),(Coord 6 11),(Coord 7 11), (Coord 8 11)	
+		]
 		,boxes = [(Coord 5 5), (Coord 6 5), (Coord 5 6)]
 		,targets = [(Coord 10 6), (Coord 10 7), (Coord 10 8)]
 		,startPos = (Coord 4 4)
-	}
-	,Room {
+	}]
+{-	,Room {
 		tiles = 
 		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -59,7 +72,7 @@ levels = [
 		,boxes = [(Coord 5 7), (Coord 8 7), (Coord 7 6), (Coord 7 5)]
 		,targets = [(Coord 6 6), (Coord 7 6), (Coord 6 7), (Coord 7 7)]
 		,startPos = (Coord 6 4)
-	}]
+	}]-}
 
 tEmpty 	= 0
 tBrick 	= 1
@@ -74,13 +87,13 @@ data Move = Move { dir :: Direction, dx :: Int, dy :: Int }
 
 data Coord = Coord { x :: Int, y :: Int }
 
-data Room = Room { tiles :: [[Int]], boxes :: [Coord], targets :: [Coord], startPos :: Coord }
+data Room = Room { tiles :: [[Int]], walls :: [Coord], boxes :: [Coord], targets :: [Coord], startPos :: Coord }
 
 data GameData = GameData {
 	timer :: Timer,
-	currentRoom :: Room,
+	room :: Room,
 	playerPos :: Coord
-}
+}		
 
 data GameConfig = GameConfig {
 	screen :: Surface,
@@ -105,13 +118,6 @@ modifyGameData fn = liftM fn getGameData >>= putGameData
 getPlayerPos :: MonadState GameData m => m Coord
 getPlayerPos = gets playerPos
 
-putPlayerPos :: MonadState GameData m => Coord -> m ()
-putPlayerPos t = modify $ \s -> s { playerPos = t }
-
-modifyPlayerPos :: MonadState GameData m => (Coord -> Coord) -> m ()
-modifyPlayerPos fn = liftM fn getPlayerPos >>= putPlayerPos
-
-
 getTimer :: MonadState GameData m => m Timer
 getTimer = gets timer
 
@@ -122,7 +128,7 @@ modifyTimerM :: MonadState GameData m => (Timer -> m Timer) -> m ()
 modifyTimerM act = getTimer >>= act >>= putTimer
 
 getRoom :: MonadState GameData m => m Room
-getRoom = gets currentRoom
+getRoom = gets room
 
 getScreen :: MonadReader GameConfig m => m Surface
 getScreen = liftM screen ask
@@ -182,25 +188,27 @@ drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTar
 collide :: Coord -> Coord -> Bool
 collide c1 c2 = ((x c1) == (x c2)) && ((y c1) == (y c2))
 
+offsetCoord :: Coord -> Move -> Coord
+offsetCoord c@Coord{ x = x, y = y } move = c { x = x + (dx move), y = y + (dy move) } 
+
+
+collideWithWorld :: Coord -> Room -> Bool
+collideWithWorld c room = foldr (||) False (map (collide c) (walls room))
+
 
 movePlayer :: Move -> GameData -> GameData
-movePlayer move gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord { x = x + (dx move), y = y + (dy move)} }
+movePlayer move gd 	| collideWithWorld (offsetCoord origPos move) (room gd) = gd
+					| otherwise = gd { playerPos = Coord { x = (x origPos) + (dx move), y = (y origPos) + (dy move)} }
+					where origPos = (playerPos gd)
 
 
 handleKeyboard :: Event -> GameData -> GameData
-handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = movePlayer Move { dir = UP, dx = 0, dy = -1 } gd
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = movePlayer move gd
+												where move = Move { dir = UP, dx = 0, dy = -1 }
 handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = movePlayer Move { dir = DOWN, dx = 0, dy = 1 } gd
 handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = movePlayer Move { dir = LEFT, dx = -1, dy = 0 } gd
 handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = movePlayer Move { dir = UP, dx = 1, dy = 0 } gd
 handleKeyboard _ d = d
-
-
-handleKeyboardPlayer :: Event -> Coord -> Coord
-handleKeyboardPlayer (KeyUp (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c { x = x, y = y - 1 }
-handleKeyboardPlayer (KeyUp (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c { x = x, y = y + 1 }
-handleKeyboardPlayer (KeyUp (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c { x = x - 1, y = y }
-handleKeyboardPlayer (KeyUp (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c { x = x + 1, y = y }
-handleKeyboardPlayer _ d = d
 
 
 loop :: GameEnv ()
@@ -212,7 +220,6 @@ loop = do
 	room <- getRoom
 
 	modifyTimerM $ liftIO . start
-	--quit <- whileEvents $ modifyPlayerPos . handleKeyboardPlayer
 	quit <- whileEvents $ modifyGameData . handleKeyboard
 
 	liftIO $ do
@@ -246,5 +253,5 @@ runLoop = evalStateT . runReaderT loop
 
 
 main = withInit [InitEverything] $ do -- withInit calls quit for us.
-	(gc, gd) <- newGame 2
+	(gc, gd) <- newGame 1
 	runLoop gc gd
