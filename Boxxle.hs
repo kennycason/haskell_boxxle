@@ -104,7 +104,7 @@ type GameState = StateT GameData IO
 type GameEnv = ReaderT GameConfig GameState
 
 
--- getters/setters 
+-- get/put/modify 
 getGameData :: MonadState GameData m => m GameData
 getGameData = get
 
@@ -115,26 +115,27 @@ modifyGameData :: MonadState GameData m => (GameData -> GameData) -> m ()
 modifyGameData fn = liftM fn getGameData >>= putGameData
 
 
+getScreen :: MonadReader GameConfig m => m Surface
+getScreen = liftM screen ask
+
+getSprites :: MonadReader GameConfig m => m Surface
+getSprites = liftM sprites ask
+
+
 getPlayerPos :: MonadState GameData m => m Coord
 getPlayerPos = gets playerPos
 
 getTimer :: MonadState GameData m => m Timer
 getTimer = gets timer
 
+getRoom :: MonadState GameData m => m Room
+getRoom = gets room
+
 putTimer :: MonadState GameData m => Timer -> m ()
 putTimer t = modify $ \s -> s { timer = t }
 
 modifyTimerM :: MonadState GameData m => (Timer -> m Timer) -> m ()
 modifyTimerM act = getTimer >>= act >>= putTimer
-
-getRoom :: MonadState GameData m => m Room
-getRoom = gets room
-
-getScreen :: MonadReader GameConfig m => m Surface
-getScreen = liftM screen ask
-
-getSprites :: MonadReader GameConfig m => m Surface
-getSprites = liftM sprites ask
 
 
 -- main functions
