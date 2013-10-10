@@ -22,9 +22,9 @@ levels = [
 		,[0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,0,1,0,1,4,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,1,1,0,1,1,1,4,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,1,1,0,0,0,0,4,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,1,1,0,1,1,1,0,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,1,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
@@ -33,6 +33,7 @@ levels = [
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		]
 		,boxes = [(Coord 5 5), (Coord 6 5), (Coord 5 6)]
+		,targets = [(Coord 10 6), (Coord 10 7), (Coord 10 8)]
 		,startPos = (Coord 4 4)
 	}
 	,Room {
@@ -43,8 +44,8 @@ levels = [
 		,[0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,4,4,0,0,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,4,4,0,0,0,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
+		,[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
@@ -54,13 +55,14 @@ levels = [
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		]
 		,boxes = [(Coord 5 7), (Coord 8 7), (Coord 7 6), (Coord 7 5)]
+		,targets = [(Coord 6 6), (Coord 7 6), (Coord 6 7), (Coord 7 7)]
 		,startPos = (Coord 6 4)
 	}]
 
 -- type defines
 data Coord = Coord { x :: Int, y :: Int }
 
-data Room = Room { tiles :: [[Int]], boxes :: [Coord], startPos :: Coord }
+data Room = Room { tiles :: [[Int]], boxes :: [Coord], targets :: [Coord], startPos :: Coord }
 
 data GameData = GameData {
 	timer :: Timer,
@@ -120,7 +122,7 @@ newGame = do
 	sprites <- loadBMP "img/boxxle.bmp"
 	timer <- start defaultTimer
 	return (GameConfig screen sprites, GameData timer level (startPos level))
-		where level = levels !! 1
+		where level = levels !! 0
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
@@ -154,6 +156,9 @@ drawRoom screen sprites room = mapM_ (\r -> drawRow screen sprites r) [0..14]
 drawBoxes :: Surface -> Surface -> [Coord] -> IO()
 drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites 2 ((x c) * 32) ((y c) * 32) ) boxes
 
+drawTargets :: Surface -> Surface -> [Coord] -> IO()
+drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites 4 ((x c) * 32) ((y c) * 32) ) targets
+
 
 emptyWorld :: Int -> Int -> a -> [[a]]
 emptyWorld x y = replicate y . replicate x
@@ -179,9 +184,7 @@ loop = do
 	modifyTimerM $ liftIO . start
 	quit <- whileEvents $ modifyPlayerPos . handleInput
 	
-
 	timer <- getTimer
-
 	screen <- getScreen
 	sprites <- getSprites
 	pos <- getPlayerPos
@@ -190,6 +193,7 @@ loop = do
 	liftIO $ do
 		drawRoom screen sprites (tiles room)
 		drawBoxes screen sprites (boxes room)
+		drawTargets screen sprites (targets room)
 		drawPlayer screen sprites (x pos) (y pos)
 		Graphics.UI.SDL.flip screen
 
