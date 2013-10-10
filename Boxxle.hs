@@ -68,6 +68,10 @@ tPlayer = 3
 tTarget	= 4
 
 -- type defines
+data Direction = Up | Down | Left | Right deriving (Eq, Enum)
+
+data Move = Move { dir :: Direction, newPos :: Coord }
+
 data Coord = Coord { x :: Int, y :: Int }
 
 data Room = Room { tiles :: [[Int]], boxes :: [Coord], targets :: [Coord], startPos :: Coord }
@@ -88,17 +92,15 @@ type GameEnv = ReaderT GameConfig GameState
 
 
 -- getters/setters 
+
 getPlayerPos :: MonadState GameData m => m Coord
 getPlayerPos = liftM playerPos get
 
 putPlayerPos :: MonadState GameData m => Coord -> m ()
 putPlayerPos t = modify $ \s -> s { playerPos = t }
 
-modifyPlayerPosM :: MonadState GameData m => (Coord -> m Coord) -> m ()
-modifyPlayerPosM act = getPlayerPos >>= act >>= putPlayerPos
-
 modifyPlayerPos :: MonadState GameData m => (Coord -> Coord) -> m ()
-modifyPlayerPos fn = fn `liftM` getPlayerPos >>= putPlayerPos
+modifyPlayerPos fn = liftM fn getPlayerPos >>= putPlayerPos
 
 
 getTimer :: MonadState GameData m => m Timer
@@ -109,7 +111,6 @@ putTimer t = modify $ \s -> s { timer = t }
 
 modifyTimerM :: MonadState GameData m => (Timer -> m Timer) -> m ()
 modifyTimerM act = getTimer >>= act >>= putTimer
-
 
 getRoom :: MonadState GameData m => m Room
 getRoom = liftM currentRoom get
@@ -122,22 +123,22 @@ getSprites = liftM sprites ask
 
 
 -- main functions
-newGame :: IO (GameConfig, GameData)
-newGame = do
+newGame :: Int -> IO (GameConfig, GameData)
+newGame lvl = do
 	setVideoMode 640 480 32 []
 	setCaption "Boxxle - Haskell" []
 	screen <- getVideoSurface
 	sprites <- loadBMP "img/boxxle.bmp"
 	timer <- start defaultTimer
 	return (GameConfig screen sprites, GameData timer level (startPos level))
-		where level = levels !! 0
+		where level = levels !! (lvl - 1)
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
 getSpriteSheetOffset n = Just (Rect offx offy 32 32)
 							where 
-								offx = mod (n * 32) (32 * 5)
-								offy = quot (n * 32) (32 * 5) * 32
+								offx = n * 32
+								offy = 0
 
 
 drawSprite :: Surface -> Surface -> Int -> Int -> Int -> IO Bool
@@ -169,8 +170,16 @@ drawTargets :: Surface -> Surface -> [Coord] -> IO()
 drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTarget ((x c) * 32) ((y c) * 32) ) targets
 
 
-emptyWorld :: Int -> Int -> a -> [[a]]
-emptyWorld x y = replicate y . replicate x
+collide :: Coord -> Coord -> Bool
+collide c1 c2 = ((x c1) == (x c2)) && ((y c1) == (y c2))
+
+
+movePlayer :: Move -> GameData -> GameData
+movePlayer move gamedata  = gamedata
+
+
+handleKeyboard2 :: Event -> GameData -> GameData
+handleKeyboard2 (KeyDown (Keysym SDLK_UP _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x, y = y - 1 } }
 
 
 handleKeyboard :: Event -> Coord -> Coord
@@ -178,6 +187,7 @@ handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c
 handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c
 handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c
 handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c
+
 
 handleKeyboard (KeyUp (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c { x = x, y = y - 1 }
 handleKeyboard (KeyUp (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c { x = x, y = y + 1 }
@@ -189,15 +199,16 @@ handleKeyboard _ d = d
 
 loop :: GameEnv ()
 loop = do
-
-	modifyTimerM $ liftIO . start
-	quit <- whileEvents $ modifyPlayerPos . handleKeyboard
-	
 	timer <- getTimer
 	screen <- getScreen
 	sprites <- getSprites
 	pos <- getPlayerPos
 	room <- getRoom
+
+	modifyTimerM $ liftIO . start
+	quit <- whileEvents $ modifyPlayerPos . handleKeyboard
+
+  	-- modifyBoxes $ move $ 
 
 	liftIO $ do
 		drawRoom screen sprites (tiles room)
@@ -230,5 +241,5 @@ runLoop = evalStateT . runReaderT loop
 
 
 main = withInit [InitEverything] $ do -- withInit calls quit for us.
-	(env, state) <- newGame
-	runLoop env state
+	(gConf, gData) <- newGame 1
+	runLoop gConf gData
