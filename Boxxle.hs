@@ -92,9 +92,18 @@ type GameEnv = ReaderT GameConfig GameState
 
 
 -- getters/setters 
+getGameData :: MonadState GameData m => m GameData
+getGameData = get
+
+putGameData :: MonadState GameData m => GameData -> m ()
+putGameData t = modify $ \s -> t
+
+modifyGameData :: MonadState GameData m => (GameData -> GameData) -> m ()
+modifyGameData fn = liftM fn getGameData >>= putGameData
+
 
 getPlayerPos :: MonadState GameData m => m Coord
-getPlayerPos = liftM playerPos get
+getPlayerPos = gets playerPos
 
 putPlayerPos :: MonadState GameData m => Coord -> m ()
 putPlayerPos t = modify $ \s -> s { playerPos = t }
@@ -104,7 +113,7 @@ modifyPlayerPos fn = liftM fn getPlayerPos >>= putPlayerPos
 
 
 getTimer :: MonadState GameData m => m Timer
-getTimer = liftM timer get
+getTimer = gets timer
 
 putTimer :: MonadState GameData m => Timer -> m ()
 putTimer t = modify $ \s -> s { timer = t }
@@ -113,7 +122,7 @@ modifyTimerM :: MonadState GameData m => (Timer -> m Timer) -> m ()
 modifyTimerM act = getTimer >>= act >>= putTimer
 
 getRoom :: MonadState GameData m => m Room
-getRoom = liftM currentRoom get
+getRoom = gets currentRoom
 
 getScreen :: MonadReader GameConfig m => m Surface
 getScreen = liftM screen ask
@@ -178,23 +187,20 @@ movePlayer :: Move -> GameData -> GameData
 movePlayer move gamedata  = gamedata
 
 
-handleKeyboard2 :: Event -> GameData -> GameData
-handleKeyboard2 (KeyDown (Keysym SDLK_UP _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x, y = y - 1 } }
-
-
-handleKeyboard :: Event -> Coord -> Coord
-handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c
-handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c
-handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c
-handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c
-
-
-handleKeyboard (KeyUp (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c { x = x, y = y - 1 }
-handleKeyboard (KeyUp (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c { x = x, y = y + 1 }
-handleKeyboard (KeyUp (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c { x = x - 1, y = y }
-handleKeyboard (KeyUp (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c { x = x + 1, y = y }
-
+handleKeyboard :: Event -> GameData -> GameData
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x, y = y - 1 } }
+handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x, y = y + 1 } }
+handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x - 1, y = y } }
+handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd@GameData { playerPos = Coord { x = x, y = y } } = gd { playerPos = Coord{ x = x + 1, y = y } }
 handleKeyboard _ d = d
+
+
+handleKeyboardPlayer :: Event -> Coord -> Coord
+handleKeyboardPlayer (KeyUp (Keysym SDLK_UP _ _)) c@Coord { x = x, y = y } = c { x = x, y = y - 1 }
+handleKeyboardPlayer (KeyUp (Keysym SDLK_DOWN _ _)) c@Coord { x = x, y = y } = c { x = x, y = y + 1 }
+handleKeyboardPlayer (KeyUp (Keysym SDLK_LEFT _ _)) c@Coord { x = x, y = y } = c { x = x - 1, y = y }
+handleKeyboardPlayer (KeyUp (Keysym SDLK_RIGHT _ _)) c@Coord { x = x, y = y } = c { x = x + 1, y = y }
+handleKeyboardPlayer _ d = d
 
 
 loop :: GameEnv ()
@@ -206,9 +212,8 @@ loop = do
 	room <- getRoom
 
 	modifyTimerM $ liftIO . start
-	quit <- whileEvents $ modifyPlayerPos . handleKeyboard
-
-  	-- modifyBoxes $ move $ 
+	--quit <- whileEvents $ modifyPlayerPos . handleKeyboardPlayer
+	quit <- whileEvents $ modifyGameData . handleKeyboard
 
 	liftIO $ do
 		drawRoom screen sprites (tiles room)
