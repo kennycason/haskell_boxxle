@@ -1,13 +1,9 @@
-{-# LANGUAGE FlexibleContexts #-}
--- http://stackoverflow.com/questions/10865963/using-the-state-monad-to-hide-explicit-state
+{-# LANGUAGE FlexibleContexts #-} -- http://stackoverflow.com/questions/10865963/using-the-state-monad-to-hide-explicit-state
+
 import Graphics.UI.SDL
-import Graphics.UI.SDL.Video
 
 {-import Graphics.UI.SDL.Mixer-}
-
-import Data.Word
-import Data.Maybe
-import Data.Array
+import Data.List
 
 import Control.Monad
 import Control.Monad.State
@@ -16,7 +12,7 @@ import Control.Monad.Reader
 import Timer
 
 -- game data
-levels = [
+rooms = [
 	Room {
 		tiles = 
 		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -84,21 +80,35 @@ tTarget	= 4
 -- type defines
 data Direction = UP | DOWN | LEFT | RIGHT deriving (Eq, Enum)
 
-data Move = Move { dir :: Direction, dx :: Int, dy :: Int }
+data Move = Move { 
+	dir :: Direction
+	,dx :: Int
+	,dy :: Int 
+}
 
-data Coord = Coord { x :: Int, y :: Int }
+data Coord = Coord { 
+	x :: Int
+	,y :: Int 
+} deriving (Eq)
 
-data Room = Room { tiles :: [[Int]], walls :: [Coord], boxes :: [Coord], targets :: [Coord], startPos :: Coord }
+data Room = Room { 
+	tiles :: [[Int]]
+	,walls :: [Coord]
+	,boxes :: [Coord]
+	,targets :: [Coord]
+	,startPos :: Coord 
+}
 
 data GameData = GameData {
-	timer :: Timer,
-	room :: Room,
-	player :: Coord
+	timer :: Timer
+	,room :: Room
+	,player :: Coord
+	,level :: Int
 }		
 
 data GameConfig = GameConfig {
-	screen :: Surface,
-	sprites :: Surface
+	screen :: Surface
+	,sprites :: Surface
 }
 
 type GameState = StateT GameData IO
@@ -110,10 +120,10 @@ getGameData :: MonadState GameData m => m GameData
 getGameData = get
 
 putGameData :: MonadState GameData m => GameData -> m ()
-putGameData t = modify $ \s -> t
+putGameData = put
 
 modifyGameData :: MonadState GameData m => (GameData -> GameData) -> m ()
-modifyGameData fn = liftM fn getGameData >>= putGameData
+modifyGameData = modify
 
 
 getScreen :: MonadReader GameConfig m => m Surface
@@ -147,8 +157,8 @@ newGame lvl = do
 	screen <- getVideoSurface
 	sprites <- loadBMP "img/boxxle.bmp"
 	timer <- start defaultTimer
-	return (GameConfig screen sprites, GameData timer level (startPos level))
-		where level = levels !! (lvl - 1)
+	return (GameConfig screen sprites, GameData timer room (startPos room) lvl)
+		where room = rooms !! (lvl - 1)
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
@@ -186,8 +196,18 @@ drawTargets :: Surface -> Surface -> [Coord] -> IO()
 drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTarget ((x c) * 32) ((y c) * 32) ) targets
 
 
-isWin :: [Coord] -> [Coord] -> Bool
-isWin boxes targets = False
+levelUp :: GameData -> GameData
+levelUp gd@GameData { player = player, level = level, room = room } = gd { level = newLevel, room = newRoom, player = (startPos newRoom) }
+																		where 
+																			newRoom = rooms !! (newLevel - 1)
+																			newLevel = level + 1
+
+
+handleWin :: GameData -> GameData
+handleWin gd 	| isWin = levelUp gd
+				| otherwise = gd
+					where isWin = length (intersect (boxes currentRoom) (targets currentRoom)) == length (targets currentRoom)
+						where currentRoom = (room gd)
 
 
 collide :: Coord -> Coord -> Bool
@@ -252,13 +272,13 @@ undoPlayer move gd 	| collideWithBoxes playerPos (room gd) = gd { player = Coord
 
 
 handleKeyboard :: Event -> GameData -> GameData
-handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = ((handleWin.undoPlayer move).(movePlayer move).(handleBoxes move)) gd
 													where move = Move { dir = UP, dx = 0, dy = -1 }
-handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = ((handleWin.undoPlayer move).(movePlayer move).(handleBoxes move)) gd
 													where move = Move { dir = DOWN, dx = 0, dy = 1 }
-handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((handleWin.undoPlayer move).(movePlayer move).(handleBoxes move)) gd
 													where move = Move { dir = LEFT, dx = -1, dy = 0 }
-handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move))  gd
+handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((handleWin.undoPlayer move).(movePlayer move).(handleBoxes move))  gd
 													where move = Move { dir = RIGHT, dx = 1, dy = 0 }
 handleKeyboard _ d = d
 
