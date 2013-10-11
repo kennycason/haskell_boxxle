@@ -16,17 +16,6 @@ import Timer
 -- game data
 -- levels from: http://www.gamefaqs.com/gameboy/585643-boxxle/faqs/52416
 
-
-
-roomBuilder ::[[Int]] -> [Coord] -> [Coord] -> Coord -> Room
-roomBuilder tiles boxes targets startPos = Room {
-		tiles = tiles
-		,walls = foldTiles tiles
-		,boxes = boxes
-		,targets = targets
-		,startPos = startPos
-	}
-
 rooms = [
 	roomBuilder 
 		[[1,1,1,1,1,0,0,0,0]					-- map tiles
@@ -95,6 +84,15 @@ rooms = [
 		[(Coord 2 4), (Coord 3 4), (Coord 2 5), (Coord 3 5)]
 		(Coord 2 1)
 	]
+
+roomBuilder ::[[Int]] -> [Coord] -> [Coord] -> Coord -> Room
+roomBuilder tiles boxes targets startPos = Room {
+		tiles = tiles
+		,walls = foldTiles tiles
+		,boxes = boxes
+		,targets = targets
+		,startPos = startPos
+	}
 
 
 -- global constants
