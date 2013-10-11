@@ -7,6 +7,7 @@ A small remake of the GameBoy Game Boxxle, So far only the first 5 levels are in
 
 Arrows - Move<br/>
 R - Reset
+S - Skipe Level
 
 <table>
 <tr>
