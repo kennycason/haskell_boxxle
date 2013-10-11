@@ -1,4 +1,4 @@
-bin/*
+bin/Boxxle
 *.hi
 *.o
 
