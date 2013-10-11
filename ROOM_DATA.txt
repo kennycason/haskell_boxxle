@@ -1,0 +1,94 @@
+
+Level 1
+XXXXX
+X...X
+X.01X XXX
+X.2.X X=X
+XXX.XXX=X
+ XX....=X
+ X...X..X
+ X...XXXX
+ XXXXX
+
+ Level 2
+XXXXXXXXXX
+X==......X
+X==0..X..X
+X..X1XX.XX
+X.2.....X
+XXXXX.X.X
+  X.3...X
+  X.....X
+  XXXXXXX
+
+Level 3
+ XXXX
+XX..X
+X.0.X
+XX1.XX
+XX.2.X
+X=3..X
+X==*=X
+XXXXXX
+
+Level 4
+ XXXXX
+ X..XXX
+ X.0..X
+XXX.X.XX
+X=X.X..X
+X=1..X.X
+X=...2.X
+XXXXXXXX
+
+Level 5
+ XXXXXXX
+ X.....XXX
+XX0XXX...X
+X...1..2.X
+X.==X.3.XX
+XX==X...X
+ XXXXXXXX
+
+Level 6
+       XXXX
+       X..X
+   XXXXX..X
+XXXX......X
+X...=XXX.XX
+X.X.X....XX
+X.X.0.1X=.X
+X.X..*..X.X
+X.=X2.3.X.X
+XX....X.X.X
+ X.XXX=...X
+ X.....XXXX
+ XXXXXXX
+
+Level 7
+   XXXXXXX
+  XX..X..X
+  X...X..X
+  X0.1.2.X
+  X.3XX..X
+XXX.4.X.XX
+X=====..X
+XXXXXXXXX
+
+Level 8
+   XXXXXX
+ XXX....X
+XX=.0XX.XX
+X==1.2...X
+X==.3.4.XX
+XXXXXX..X
+     XXXX
+
+Level 10
+  XXXXXX
+  X....X
+XXX012.X
+X..3==.X
+X.4===XX
+XXXX..X
+   XXXX

@@ -15,52 +15,37 @@ import Timer
 
 -- game data
 -- levels from: http://www.gamefaqs.com/gameboy/585643-boxxle/faqs/52416
-rooms = [
 
-{-
-Level 1
-XXXXX
-X...X
-X.01X XXX
-X.2.X X=X
-XXX.XXX=X
- XX....=X
- X...X..X
- X...XXXX
- XXXXX-}
-	Room {
-		tiles = 
-		[[1,1,1,1,1,0,0,0,0]
+
+
+roomBuilder ::[[Int]] -> [Coord] -> [Coord] -> Coord -> Room
+roomBuilder tiles boxes targets startPos = Room {
+		tiles = tiles
+		,walls = foldTiles tiles
+		,boxes = boxes
+		,targets = targets
+		,startPos = startPos
+	}
+
+rooms = [
+	roomBuilder 
+		[[1,1,1,1,1,0,0,0,0]					-- map tiles
 		,[1,0,0,0,1,0,0,0,0]
 		,[1,0,0,0,1,0,1,1,1]
-		,[1,0,0,0,1,0,1,0,1]
-		,[1,1,1,0,1,1,1,0,1]
-		,[0,1,1,0,0,0,0,0,1]
+		,[1,0,0,0,1,0,1,4,1]
+		,[1,1,1,0,1,1,1,4,1]
+		,[0,1,1,0,0,0,0,4,1]
 		,[0,1,0,0,0,1,0,0,1]
 		,[0,1,0,0,0,1,1,1,1]
 		,[0,1,1,1,1,1,0,0,0]
 		]
-		,walls = [] -- Autogenerate collidables from tiles[][]
-		,boxes = [(Coord 2 2), (Coord 3 2), (Coord 2 3)]
-		,targets = [(Coord 7 3), (Coord 7 4), (Coord 7 5)]
-		,startPos = (Coord 1 1)
-	}
-{-
-Level 2
-XXXXXXXXXX
-X==......X
-X==0..X..X
-X..X1XX.XX
-X.2.....X
-XXXXX.X.X
-  X.3...X
-  X.....X
-  XXXXXXX-}
-	,Room {
-		tiles = 
+		[(Coord 2 2), (Coord 3 2), (Coord 2 3)] -- boxes
+		[(Coord 7 3), (Coord 7 4), (Coord 7 5)] -- targets
+		(Coord 1 1)								-- start pos
+	,roomBuilder
 		[[1,1,1,1,1,1,1,1,1,1]
-		,[1,0,0,0,0,0,0,0,0,1]
-		,[1,0,0,0,0,0,1,0,0,1]
+		,[1,4,4,0,0,0,0,0,0,1]
+		,[1,4,4,0,0,0,1,0,0,1]
 		,[1,0,0,1,0,1,1,0,1,1]
 		,[1,0,0,0,0,0,0,0,1,0]
 		,[1,1,1,1,1,0,1,0,1,0]
@@ -68,134 +53,51 @@ XXXXX.X.X
 		,[0,0,1,0,0,0,0,0,1,0]
 		,[0,0,1,1,1,1,1,1,1,0]
 		]
-		,walls = []
-		,boxes = [(Coord 3 2), (Coord 4 3), (Coord 2 4), (Coord 4 6)]
-		,targets = [(Coord 1 1), (Coord 2 1), (Coord 1 2), (Coord 2 2)]
-		,startPos = (Coord 1 1)
-	}
-{-
-Level 3
- XXXX
-XX..X
-X.0.X
-XX1.XX
-XX.2.X
-X=3..X
-X==*=X
-XXXXXX-}
-	,Room {
-		tiles = 
+		[(Coord 3 2), (Coord 4 3), (Coord 2 4), (Coord 4 6)]
+		[(Coord 1 1), (Coord 2 1), (Coord 1 2), (Coord 2 2)]
+		(Coord 1 1)
+	,roomBuilder
 		[[0,1,1,1,1,0]
 		,[1,1,0,0,1,0]
 		,[1,0,0,0,1,0]
 		,[1,1,0,0,1,1]
 		,[1,1,0,0,0,1]
-		,[1,0,0,0,0,1]
-		,[1,0,0,0,0,1]
+		,[1,4,0,0,0,1]
+		,[1,4,4,0,4,1]
 		,[1,1,1,1,1,1]
 		]
-		,walls = []
-		,boxes = [(Coord 2 2), (Coord 2 3), (Coord 3 4), (Coord 2 5)]
-		,targets = [(Coord 1 5), (Coord 1 6), (Coord 2 6), (Coord 4 6)]
-		,startPos = (Coord 1 2)
-	}
-{- 
-Level 4
- XXXXX
- X..XXX
- X.0..X
-XXX.X.XX
-X=X.X..X
-X=1..X.X
-X=...2.X
-XXXXXXXX-}
-	,Room {
-		tiles = 
+		[(Coord 2 2), (Coord 2 3), (Coord 3 4), (Coord 2 5)]
+		[(Coord 1 5), (Coord 1 6), (Coord 2 6), (Coord 4 6)]
+		(Coord 1 2)
+	,roomBuilder
 		[[0,1,1,1,1,1,0,0]
 		,[0,1,0,0,1,1,1,0]
 		,[0,1,0,0,0,0,1,0]
 		,[1,1,1,0,1,0,1,1]
-		,[1,0,1,0,1,0,0,1]
-		,[1,0,0,0,0,1,0,1]
-		,[1,0,0,0,0,0,0,1]
+		,[1,4,1,0,1,0,0,1]
+		,[1,4,0,0,0,1,0,1]
+		,[1,4,0,0,0,0,0,1]
 		,[1,1,1,1,1,1,1,1]
 		]
-		,walls = []
-		,boxes = [(Coord 3 2), (Coord 2 5), (Coord 5 6)]
-		,targets = [(Coord 1 4), (Coord 1 5), (Coord 1 6)]
-		,startPos = (Coord 2 1)
-	}
-{- 
-Level 5
- XXXXXXX
- X.....XXX
-XX0XXX...X
-X...1..2.X
-X.==X.3.XX
-XX==X...X
- XXXXXXXX-}
-	,Room {
-		tiles = 
+		[(Coord 3 2), (Coord 2 5), (Coord 5 6)]
+		[(Coord 1 4), (Coord 1 5), (Coord 1 6)]
+		(Coord 2 1)
+	,roomBuilder
 		[[0,1,1,1,1,1,1,1,0,0]
 		,[0,1,0,0,0,0,0,1,1,1]
 		,[1,1,0,1,1,1,0,0,0,1]
 		,[1,0,0,0,0,0,0,0,0,1]
-		,[1,0,0,0,1,0,0,0,1,1]
-		,[1,1,0,0,1,0,0,0,1,0]
+		,[1,0,4,4,1,0,0,0,1,1]
+		,[1,1,4,4,1,0,0,0,1,0]
 		,[0,1,1,1,1,1,1,1,1,0]
 		]
-		,walls = []
-		,boxes = [(Coord 2 2), (Coord 4 3), (Coord 6 3), (Coord 5 4)]
-		,targets = [(Coord 2 4), (Coord 3 4), (Coord 2 5), (Coord 3 5)]
-		,startPos = (Coord 2 1)
-	}]
-{- 
-Level 6
-       XXXX
-       X..X
-   XXXXX..X
-XXXX......X
-X...=XXX.XX
-X.X.X....XX
-X.X.0.1X=.X
-X.X..*..X.X
-X.=X2.3.X.X
-XX....X.X.X
- X.XXX=...X
- X.....XXXX
- XXXXXXX-}
+		[(Coord 2 2), (Coord 4 3), (Coord 6 3), (Coord 5 4)]
+		[(Coord 2 4), (Coord 3 4), (Coord 2 5), (Coord 3 5)]
+		(Coord 2 1)
+	]
 
-{- 
-Level 7
-   XXXXXXX
-  XX..X..X
-  X...X..X
-  X0.1.2.X
-  X.3XX..X
-XXX.4.X.XX
-X=====..X
-XXXXXXXXX-}
 
-{-
-Level 8
-   XXXXXX
- XXX....X
-XX=.0XX.XX
-X==1.2...X
-X==.3.4.XX
-XXXXXX..X
-     XXXX-}
-
-{- 
-Level 10
-  XXXXXX
-  X....X
-XXX012.X
-X..3==.X
-X.4===XX
-XXXX..X
-   XXXX-}
-
+-- global constants
 startLevel = 1
 
 tEmpty 	= 0
@@ -203,6 +105,7 @@ tBrick 	= 1
 tBox 	= 2
 tPlayer = 3
 tTarget	= 4
+
 
 -- type defines
 data Direction = UP | DOWN | LEFT | RIGHT deriving (Eq, Enum)
@@ -242,7 +145,7 @@ type GameState = StateT GameData IO
 type GameEnv = ReaderT GameConfig GameState
 
 
--- get/put/modify 
+-- monad state get/put/modify 
 getGameData :: MonadState GameData m => m GameData
 getGameData = get
 
@@ -252,13 +155,11 @@ putGameData = put
 modifyGameData :: MonadState GameData m => (GameData -> GameData) -> m ()
 modifyGameData = modify
 
-
 getScreen :: MonadReader GameConfig m => m Surface
 getScreen = liftM screen ask
 
 getSprites :: MonadReader GameConfig m => m Surface
 getSprites = liftM sprites ask
-
 
 getPlayer :: MonadState GameData m => m Coord
 getPlayer = gets player
@@ -290,34 +191,33 @@ newGame lvl = do
 
 
 levelUp :: GameData -> GameData
-levelUp gd@GameData { player = player, level = level, room = room } = gd { level = newLevel, room = processedRoom, player = (startPos processedRoom) }
-																		where 
-																			newLevel = (level + 1) `mod` (length rooms)
-																			processedRoom = nextRoom { walls = foldTiles (tiles nextRoom) }
-																				where nextRoom = rooms !! (level `mod` (length rooms))
+levelUp gd = gd { level = newLevel, room = nextRoom, player = (startPos nextRoom) }
+			where 
+				newLevel = ((level gd) + 1) `mod` (length rooms)
+				nextRoom = rooms !! ((level gd) `mod` (length rooms))
 
 
 resetLevel :: GameData -> GameData
-resetLevel gd@GameData { player = player, level = level, room = room } = gd { room = processedRoom, player = (startPos processedRoom) }
-																		where processedRoom = resetRoom { walls = foldTiles (tiles resetRoom) }
-																				where resetRoom = rooms !! ((level - 1) `mod` (length rooms))
+resetLevel gd = gd { room = resetRoom, player = (startPos resetRoom) }
+				where resetRoom = rooms !! ( ((level gd) - 1) `mod` (length rooms) )
 
 
 handleWin :: GameData -> GameData
-handleWin gd 	| isWin = levelUp gd
-				| otherwise = gd
-					where isWin = length (intersect (boxes currentRoom) (targets currentRoom)) == length (targets currentRoom)
-						where currentRoom = (room gd)
+handleWin gd| isWin = levelUp gd
+			| otherwise = gd
+				where isWin = length (intersect 
+										(boxes currentRoom) 
+										(targets currentRoom)) == length (targets currentRoom)
+					where currentRoom = (room gd)
 
 
 foldTiles :: [[Int]] -> [Coord]
-foldTiles tiles2d = concat (map foldTileRow (zip [0..] tiles2d))
-
-
-foldTileRow :: (Int, [Int]) -> [Coord]
-foldTileRow (row, tiles1d) = map toCoord $ filter pickOnes (zip [0..] tiles1d) where
-    pickOnes (_, value) = value == 1
-    toCoord (col, _) = Coord {x=col, y=row}
+foldTiles tiles =
+  [Coord x y                         -- generate a Coord pair
+    | (y, row) <- enumerate tiles    -- for each row with its coordinate
+    , (x, tile) <- enumerate row     -- for each tile in the row (with coordinate)
+    , tile == 1]                     -- if the tile is 1
+    	where enumerate = zip [0..]
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
@@ -329,9 +229,9 @@ getSpriteSheetOffset n = Just (Rect offx offy 32 32)
 
 drawSprite :: Surface -> Surface -> Int -> Int -> Int -> IO Bool
 drawSprite screen sprites n x y = blitSurface 
-											sprites (getSpriteSheetOffset n) 
-											screen dst
-													where dst = Just (Rect x y 32 32)
+										sprites (getSpriteSheetOffset n) 
+										screen dst
+											where dst = Just (Rect x y 32 32)
 
 
 drawPlayer :: Surface -> Surface -> Int -> Int -> IO Bool
@@ -341,17 +241,20 @@ drawPlayer screen sprites x y = blitSurface sprites src screen dst
 									dst = Just (Rect (x * 32) (y * 32) 32 32)
 
 
+drawTile :: Surface -> Surface -> Int -> [Coord] -> IO()
+drawTile screen sprites tile coords = mapM_ (\c -> drawSprite screen sprites tile ((x c) * 32) ((y c) * 32) ) coords
+
+
 drawBricks :: Surface -> Surface -> [Coord] -> IO()
-drawBricks screen sprites bricks = mapM_ (\c -> drawSprite screen sprites tBrick ((x c) * 32) ((y c) * 32) ) bricks
+drawBricks screen sprites bricks = drawTile screen sprites tBrick bricks
 
 
 drawBoxes :: Surface -> Surface -> [Coord] -> IO()
-drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites tBox ((x c) * 32) ((y c) * 32) ) boxes
+drawBoxes screen sprites boxes = drawTile screen sprites tBox boxes
 
 
 drawTargets :: Surface -> Surface -> [Coord] -> IO()
-drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTarget ((x c) * 32) ((y c) * 32) ) targets
-
+drawTargets screen sprites targets = drawTile screen sprites tTarget targets
 
 
 collide :: Coord -> Coord -> Bool
@@ -359,7 +262,7 @@ collide c1 c2 = ((x c1) == (x c2)) && ((y c1) == (y c2))
 
 
 offsetCoord :: Coord -> Move -> Coord
-offsetCoord c@Coord{ x = x, y = y } move = c { x = x + (dx move), y = y + (dy move) } 
+offsetCoord c move = c { x = (x c) + (dx move), y = (y c) + (dy move) } 
 
 
 collideWithWorld :: Coord -> Room -> Bool
@@ -383,7 +286,7 @@ movePlayer move gd 	| collideWithWorld newPlayerPos (room gd) = gd
 
 
 moveBox :: Move -> Coord -> Coord
-moveBox move box@Coord { x = x, y = y } = box { x = x + (dx move), y = y + (dy move) }
+moveBox move box = box { x = (x box) + (dx move), y = (y box) + (dy move) }
 
 
 checkBox :: Room -> Coord -> Move -> Coord -> Coord
@@ -403,8 +306,8 @@ checkBoxes room playerPos move boxes = map (checkBox room playerPos move) boxes
 
 
 handleBoxes :: Move -> GameData -> GameData
-handleBoxes move gd@GameData{ room = room@Room {boxes = boxes} } = gd { room = room { boxes = (checkBoxes room playerPos move boxes) } }
-																where playerPos = offsetCoord (player gd) move
+handleBoxes move gd = gd { room = (room gd) { boxes = (checkBoxes (room gd) playerPos move (boxes (room gd)) ) } }
+						where playerPos = offsetCoord (player gd) move
 
 
 -- if the resulting move yields the player standing on a box, undo it
@@ -425,8 +328,9 @@ handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((handleWin.undoPlayer move
 handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((handleWin.undoPlayer move).(movePlayer move).(handleBoxes move))  gd
 													where move = Move { dir = RIGHT, dx = 1, dy = 0 }
 handleKeyboard (KeyDown (Keysym SDLK_r _ _)) gd = resetLevel gd
-		
+handleKeyboard (KeyDown (Keysym SDLK_s _ _)) gd = levelUp gd
 handleKeyboard _ d = d
+
 
 loop :: GameEnv ()
 loop = do
