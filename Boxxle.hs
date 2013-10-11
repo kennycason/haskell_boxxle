@@ -5,6 +5,7 @@
 
 import Graphics.UI.SDL
 import Graphics.UI.SDL.TTF as TTFG
+import Graphics.UI.SDL.Mixer
 
 import Data.List
 
@@ -141,6 +142,7 @@ data GameConfig = GameConfig {
     screen :: Surface
     ,sprites :: Surface
     ,front :: Font
+    ,music :: Music
 }
 
 type GameState = StateT GameData IO
@@ -195,7 +197,11 @@ newGame lvl = do
     sprites <- loadBMP "img/boxxle.bmp"
     font    <- openFont "fonts/steelpla.ttf" 18
     timer   <- start defaultTimer
-    return (GameConfig screen sprites font, GameData timer room (startPos room) lvl)
+
+    openAudio 22050 AudioS16Sys 2 4096
+    music   <- loadMUS "music/main.wav"
+    playMusic music (-1)
+    return (GameConfig screen sprites font music, GameData timer room (startPos room) lvl)
     where room = currentRoom { 
                     walls = foldTiles (tiles currentRoom) 
             }
@@ -409,3 +415,6 @@ main = withInit [InitEverything] $ do -- withInit calls quit for us.
         else do
             (gc, gd) <- newGame startLevel
             runLoop gc gd
+            haltMusic
+            closeAudio
+            -- TTFG.quit -- causes segfault

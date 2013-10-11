@@ -3,6 +3,10 @@ Boxxle Haskell
 
 A small remake of the GameBoy Game Boxxle, So far only the first 5 levels are included.
 
+
+sudo cabal install SDL
+sudo cabal install SDL-mixer
+
 ***Keys***<br/>
 Arrows - Move<br/>
 R - Reset<br/>
