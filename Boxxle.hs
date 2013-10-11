@@ -193,7 +193,7 @@ newGame lvl = do
     setCaption "Boxxle - Haskell" []
     screen  <- getVideoSurface
     sprites <- loadBMP "img/boxxle.bmp"
-    font    <- openFont "fonts/steelpla.ttf" 24
+    font    <- openFont "fonts/steelpla.ttf" 18
     timer   <- start defaultTimer
     return (GameConfig screen sprites font, GameData timer room (startPos room) lvl)
     where room = currentRoom { 
@@ -373,7 +373,7 @@ loop = do
         drawBoxes screen sprites (boxes room)
         drawPlayer screen sprites (x pos) (y pos)
 
-        applySurface 300 3 message screen Nothing
+        applySurface 340 3 message screen Nothing
 
         Graphics.UI.SDL.flip screen
 
