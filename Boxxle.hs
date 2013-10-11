@@ -408,7 +408,7 @@ runLoop :: GameConfig -> GameData -> IO ()
 runLoop = evalStateT . runReaderT loop
 
 
-main = withInit [InitEverything] $ do -- withInit calls quit for us.
+main = withInit [InitEverything] $ do -- withInit calls quit
     result <- TTFG.init
     if not result
         then putStr "Failed to init ttf\n"
@@ -417,4 +417,4 @@ main = withInit [InitEverything] $ do -- withInit calls quit for us.
             runLoop gc gd
             haltMusic
             closeAudio
-            -- TTFG.quit -- causes segfault
+            TTFG.quit

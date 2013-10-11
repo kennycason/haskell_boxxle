@@ -2,7 +2,7 @@
 
 rm bin/Boxxle
 
-ghc -threaded -o bin/Boxxle *.hs 
+ghc -threaded -O0 -o bin/Boxxle *.hs 
 
 rm -f *.hi
 rm -f *.o
