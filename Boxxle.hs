@@ -1,8 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-} -- http://stackoverflow.com/questions/10865963/using-the-state-monad-to-hide-explicit-state
 
+-- @author Kenny Cason
+-- kennycason.com 2013
+
 import Graphics.UI.SDL
 
-{-import Graphics.UI.SDL.Mixer-}
 import Data.List
 
 import Control.Monad
@@ -12,64 +14,189 @@ import Control.Monad.Reader
 import Timer
 
 -- game data
+-- levels from: http://www.gamefaqs.com/gameboy/585643-boxxle/faqs/52416
 rooms = [
+
+{-
+Level 1
+XXXXX
+X...X
+X.01X XXX
+X.2.X X=X
+XXX.XXX=X
+ XX....=X
+ X...X..X
+ X...XXXX
+ XXXXX-}
 	Room {
 		tiles = 
-		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,1,1,0,1,1,1,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,1,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		[[1,1,1,1,1,0,0,0,0]
+		,[1,0,0,0,1,0,0,0,0]
+		,[1,0,0,0,1,0,1,1,1]
+		,[1,0,0,0,1,0,1,0,1]
+		,[1,1,1,0,1,1,1,0,1]
+		,[0,1,1,0,0,0,0,0,1]
+		,[0,1,0,0,0,1,0,0,1]
+		,[0,1,0,0,0,1,1,1,1]
+		,[0,1,1,1,1,1,0,0,0]
 		]
-		,walls = -- TODO create a function that maps [[Int]] -> [Coord]
-		[(Coord 3 3), (Coord 4 3), (Coord 5 3), (Coord 6 3), (Coord 7 3)
-		,(Coord 3 4),                                        (Coord 7 4)	
-		,(Coord 3 5),                                        (Coord 7 5),              (Coord 9 5), (Coord 10 5), (Coord 11 5)	
-		,(Coord 3 6),                                        (Coord 7 6),              (Coord 9 6),               (Coord 11 6)	
-		,(Coord 3 7),(Coord 4 7), (Coord 5 7),               (Coord 7 7), (Coord 8 7), (Coord 9 7),               (Coord 11 7)	
-		            ,(Coord 4 8), (Coord 5 8),                                                                    (Coord 11 8)	
-		            ,(Coord 4 9),                                         (Coord 8 9),                            (Coord 11 9)
-		            ,(Coord 4 10),                                        (Coord 8 10),(Coord 9 10),(Coord 10 10),(Coord 11 10)	
-		            ,(Coord 4 11),(Coord 5 11),(Coord 6 11),(Coord 7 11), (Coord 8 11)	
-		]
-		,boxes = [(Coord 5 5), (Coord 6 5), (Coord 5 6)]
-		,targets = [(Coord 10 6), (Coord 10 7), (Coord 10 8)]
-		,startPos = (Coord 4 4)
+		,walls = [] -- Autogenerate collidables from tiles[][]
+		,boxes = [(Coord 2 2), (Coord 3 2), (Coord 2 3)]
+		,targets = [(Coord 7 3), (Coord 7 4), (Coord 7 5)]
+		,startPos = (Coord 1 1)
 	}
+{-
+Level 2
+XXXXXXXXXX
+X==......X
+X==0..X..X
+X..X1XX.XX
+X.2.....X
+XXXXX.X.X
+  X.3...X
+  X.....X
+  XXXXXXX-}
 	,Room {
 		tiles = 
-		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+		[[1,1,1,1,1,1,1,1,1,1]
+		,[1,0,0,0,0,0,0,0,0,1]
+		,[1,0,0,0,0,0,1,0,0,1]
+		,[1,0,0,1,0,1,1,0,1,1]
+		,[1,0,0,0,0,0,0,0,1,0]
+		,[1,1,1,1,1,0,1,0,1,0]
+		,[0,0,1,0,0,0,0,0,1,0]
+		,[0,0,1,0,0,0,0,0,1,0]
+		,[0,0,1,1,1,1,1,1,1,0]
 		]
-		,walls = -- TODO create a function that maps [[Int]] -> [Coord]
-		[(Coord 3 3)]
-		,boxes = [(Coord 5 7), (Coord 8 7), (Coord 7 6), (Coord 7 5)]
-		,targets = [(Coord 6 6), (Coord 7 6), (Coord 6 7), (Coord 7 7)]
-		,startPos = (Coord 6 4)
+		,walls = []
+		,boxes = [(Coord 3 2), (Coord 4 3), (Coord 2 4), (Coord 4 6)]
+		,targets = [(Coord 1 1), (Coord 2 1), (Coord 1 2), (Coord 2 2)]
+		,startPos = (Coord 1 1)
+	}
+{-
+Level 3
+ XXXX
+XX..X
+X.0.X
+XX1.XX
+XX.2.X
+X=3..X
+X==*=X
+XXXXXX-}
+	,Room {
+		tiles = 
+		[[0,1,1,1,1,0]
+		,[1,1,0,0,1,0]
+		,[1,0,0,0,1,0]
+		,[1,1,0,0,1,1]
+		,[1,1,0,0,0,1]
+		,[1,0,0,0,0,1]
+		,[1,0,0,0,0,1]
+		,[1,1,1,1,1,1]
+		]
+		,walls = []
+		,boxes = [(Coord 2 2), (Coord 2 3), (Coord 3 4), (Coord 2 5)]
+		,targets = [(Coord 1 5), (Coord 1 6), (Coord 2 6), (Coord 4 6)]
+		,startPos = (Coord 1 2)
+	}
+{- 
+Level 4
+ XXXXX
+ X..XXX
+ X.0..X
+XXX.X.XX
+X=X.X..X
+X=1..X.X
+X=...2.X
+XXXXXXXX-}
+	,Room {
+		tiles = 
+		[[0,1,1,1,1,1,0,0]
+		,[0,1,0,0,1,1,1,0]
+		,[0,1,0,0,0,0,1,0]
+		,[1,1,1,0,1,0,1,1]
+		,[1,0,1,0,1,0,0,1]
+		,[1,0,0,0,0,1,0,1]
+		,[1,0,0,0,0,0,0,1]
+		,[1,1,1,1,1,1,1,1]
+		]
+		,walls = []
+		,boxes = [(Coord 3 2), (Coord 2 5), (Coord 5 6)]
+		,targets = [(Coord 1 4), (Coord 1 5), (Coord 1 6)]
+		,startPos = (Coord 2 1)
+	}
+{- 
+Level 5
+ XXXXXXX
+ X.....XXX
+XX0XXX...X
+X...1..2.X
+X.==X.3.XX
+XX==X...X
+ XXXXXXXX-}
+	,Room {
+		tiles = 
+		[[0,1,1,1,1,1,1,1,0,0]
+		,[0,1,0,0,0,0,0,1,1,1]
+		,[1,1,0,1,1,1,0,0,0,1]
+		,[1,0,0,0,0,0,0,0,0,1]
+		,[1,0,0,0,1,0,0,0,1,1]
+		,[1,1,0,0,1,0,0,0,1,0]
+		,[0,1,1,1,1,1,1,1,1,0]
+		]
+		,walls = []
+		,boxes = [(Coord 2 2), (Coord 4 3), (Coord 6 3), (Coord 5 4)]
+		,targets = [(Coord 2 4), (Coord 3 4), (Coord 2 5), (Coord 3 5)]
+		,startPos = (Coord 2 1)
 	}]
+{- 
+Level 6
+       XXXX
+       X..X
+   XXXXX..X
+XXXX......X
+X...=XXX.XX
+X.X.X....XX
+X.X.0.1X=.X
+X.X..*..X.X
+X.=X2.3.X.X
+XX....X.X.X
+ X.XXX=...X
+ X.....XXXX
+ XXXXXXX-}
+
+{- 
+Level 7
+   XXXXXXX
+  XX..X..X
+  X...X..X
+  X0.1.2.X
+  X.3XX..X
+XXX.4.X.XX
+X=====..X
+XXXXXXXXX-}
+
+{-
+Level 8
+   XXXXXX
+ XXX....X
+XX=.0XX.XX
+X==1.2...X
+X==.3.4.XX
+XXXXXX..X
+     XXXX-}
+
+{- 
+Level 10
+  XXXXXX
+  X....X
+XXX012.X
+X..3==.X
+X.4===XX
+XXXX..X
+   XXXX-}
+
+startLevel = 1
 
 tEmpty 	= 0
 tBrick 	= 1
@@ -152,13 +279,45 @@ modifyTimerM act = getTimer >>= act >>= putTimer
 -- main functions
 newGame :: Int -> IO (GameConfig, GameData)
 newGame lvl = do
-	setVideoMode 640 480 32 []
+	setVideoMode 320 288 32 []
 	setCaption "Boxxle - Haskell" []
 	screen <- getVideoSurface
 	sprites <- loadBMP "img/boxxle.bmp"
 	timer <- start defaultTimer
 	return (GameConfig screen sprites, GameData timer room (startPos room) lvl)
-		where room = rooms !! (lvl - 1)
+		where room = currentRoom {walls = foldTiles (tiles currentRoom) }
+			where currentRoom = (rooms !! (lvl - 1))
+
+
+levelUp :: GameData -> GameData
+levelUp gd@GameData { player = player, level = level, room = room } = gd { level = newLevel, room = processedRoom, player = (startPos processedRoom) }
+																		where 
+																			newLevel = (level + 1) `mod` (length rooms)
+																			processedRoom = nextRoom { walls = foldTiles (tiles nextRoom) }
+																				where nextRoom = rooms !! (level `mod` (length rooms))
+
+
+resetLevel :: GameData -> GameData
+resetLevel gd@GameData { player = player, level = level, room = room } = gd { room = processedRoom, player = (startPos processedRoom) }
+																		where processedRoom = resetRoom { walls = foldTiles (tiles resetRoom) }
+																				where resetRoom = rooms !! ((level - 1) `mod` (length rooms))
+
+
+handleWin :: GameData -> GameData
+handleWin gd 	| isWin = levelUp gd
+				| otherwise = gd
+					where isWin = length (intersect (boxes currentRoom) (targets currentRoom)) == length (targets currentRoom)
+						where currentRoom = (room gd)
+
+
+foldTiles :: [[Int]] -> [Coord]
+foldTiles tiles2d = concat (map foldTileRow (zip [0..] tiles2d))
+
+
+foldTileRow :: (Int, [Int]) -> [Coord]
+foldTileRow (row, tiles1d) = map toCoord $ filter pickOnes (zip [0..] tiles1d) where
+    pickOnes (_, value) = value == 1
+    toCoord (col, _) = Coord {x=col, y=row}
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
@@ -175,18 +334,16 @@ drawSprite screen sprites n x y = blitSurface
 													where dst = Just (Rect x y 32 32)
 
 
-drawRoom :: Surface -> Surface -> [[Int]] -> IO()
-drawRoom screen sprites room = mapM_ (\r -> drawRow screen sprites r) [0..14]
-								where drawRow screen sprites r = 
-									mapM_ (\(x, n) -> drawSprite screen sprites n (x * 32) (r * 32)) (coord (room !! r))
-										where coord row = map (\i -> (i, row !! i)) [0..19]
-
-
 drawPlayer :: Surface -> Surface -> Int -> Int -> IO Bool
 drawPlayer screen sprites x y = blitSurface sprites src screen dst
 								where
 									src = (getSpriteSheetOffset tPlayer)
 									dst = Just (Rect (x * 32) (y * 32) 32 32)
+
+
+drawBricks :: Surface -> Surface -> [Coord] -> IO()
+drawBricks screen sprites bricks = mapM_ (\c -> drawSprite screen sprites tBrick ((x c) * 32) ((y c) * 32) ) bricks
+
 
 drawBoxes :: Surface -> Surface -> [Coord] -> IO()
 drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites tBox ((x c) * 32) ((y c) * 32) ) boxes
@@ -195,19 +352,6 @@ drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites tBox ((x
 drawTargets :: Surface -> Surface -> [Coord] -> IO()
 drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTarget ((x c) * 32) ((y c) * 32) ) targets
 
-
-levelUp :: GameData -> GameData
-levelUp gd@GameData { player = player, level = level, room = room } = gd { level = newLevel, room = newRoom, player = (startPos newRoom) }
-																		where 
-																			newRoom = rooms !! (newLevel - 1)
-																			newLevel = level + 1
-
-
-handleWin :: GameData -> GameData
-handleWin gd 	| isWin = levelUp gd
-				| otherwise = gd
-					where isWin = length (intersect (boxes currentRoom) (targets currentRoom)) == length (targets currentRoom)
-						where currentRoom = (room gd)
 
 
 collide :: Coord -> Coord -> Bool
@@ -280,22 +424,27 @@ handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((handleWin.undoPlayer move
 													where move = Move { dir = LEFT, dx = -1, dy = 0 }
 handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((handleWin.undoPlayer move).(movePlayer move).(handleBoxes move))  gd
 													where move = Move { dir = RIGHT, dx = 1, dy = 0 }
+handleKeyboard (KeyDown (Keysym SDLK_r _ _)) gd = resetLevel gd
+		
 handleKeyboard _ d = d
-
 
 loop :: GameEnv ()
 loop = do
-	timer <- getTimer
-	screen <- getScreen
+	timer 	<- getTimer
+	screen 	<- getScreen
 	sprites <- getSprites
-	pos <- getPlayer
-	room <- getRoom
+	pos 	<- getPlayer
+	room 	<- getRoom
 
 	modifyTimerM $ liftIO . start
 	quit <- whileEvents $ modifyGameData . handleKeyboard
 
 	liftIO $ do
-		drawRoom screen sprites (tiles room)
+		bgRect	<- Just `liftM` getClipRect screen
+		white 	<- mapRGB' screen 0xff 0xff 0xff
+		fillRect screen bgRect white
+
+		drawBricks screen sprites (walls room)
 		drawTargets screen sprites (targets room)
 		drawBoxes screen sprites (boxes room)
 		drawPlayer screen sprites (x pos) (y pos)
@@ -308,6 +457,7 @@ loop = do
  where
 	framesPerSecond = 30
 	secsPerFrame = 1000 `div` framesPerSecond
+	mapRGB' = mapRGB . surfaceGetPixelFormat
 
 whileEvents :: MonadIO m => (Event -> m ()) -> m Bool
 whileEvents act = do
@@ -325,5 +475,5 @@ runLoop = evalStateT . runReaderT loop
 
 
 main = withInit [InitEverything] $ do -- withInit calls quit for us.
-	(gc, gd) <- newGame 1
+	(gc, gd) <- newGame startLevel
 	runLoop gc gd
