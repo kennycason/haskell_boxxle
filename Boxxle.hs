@@ -4,6 +4,7 @@
 -- kennycason.com 2013
 
 import Graphics.UI.SDL
+import Graphics.UI.SDL.TTF as TTFG
 
 import Data.List
 
@@ -104,6 +105,8 @@ tBox     = 2
 tPlayer = 3
 tTarget    = 4
 
+textColor = Color 0x33 0x33 0x33
+
 
 -- type defines
 data Direction = UP | DOWN | LEFT | RIGHT deriving (Eq, Enum)
@@ -137,6 +140,7 @@ data GameData = GameData {
 data GameConfig = GameConfig {
     screen :: Surface
     ,sprites :: Surface
+    ,front :: Font
 }
 
 type GameState = StateT GameData IO
@@ -153,20 +157,17 @@ putGameData = put
 modifyGameData :: MonadState GameData m => (GameData -> GameData) -> m ()
 modifyGameData = modify
 
-getScreen :: MonadReader GameConfig m => m Surface
-getScreen = liftM screen ask
-
-getSprites :: MonadReader GameConfig m => m Surface
-getSprites = liftM sprites ask
-
 getPlayer :: MonadState GameData m => m Coord
 getPlayer = gets player
 
-getTimer :: MonadState GameData m => m Timer
-getTimer = gets timer
-
 getRoom :: MonadState GameData m => m Room
 getRoom = gets room
+
+getLevel :: MonadState GameData m => m Int
+getLevel = gets level
+
+getTimer :: MonadState GameData m => m Timer
+getTimer = gets timer
 
 putTimer :: MonadState GameData m => Timer -> m ()
 putTimer t = modify $ \s -> s { timer = t }
@@ -174,16 +175,27 @@ putTimer t = modify $ \s -> s { timer = t }
 modifyTimerM :: MonadState GameData m => (Timer -> m Timer) -> m ()
 modifyTimerM act = getTimer >>= act >>= putTimer
 
+getScreen :: MonadReader GameConfig m => m Surface
+getScreen = liftM screen ask
+
+getSprites :: MonadReader GameConfig m => m Surface
+getSprites = liftM sprites ask
+
+getFont :: MonadReader GameConfig m => m Font
+getFont = liftM front ask
+
 
 -- main functions
 newGame :: Int -> IO (GameConfig, GameData)
 newGame lvl = do
-    setVideoMode 320 288 32 []
+    -- setVideoMode 320 288 32 []
+    setVideoMode 448 352 32 []
     setCaption "Boxxle - Haskell" []
-    screen <- getVideoSurface
+    screen  <- getVideoSurface
     sprites <- loadBMP "img/boxxle.bmp"
-    timer <- start defaultTimer
-    return (GameConfig screen sprites, GameData timer room (startPos room) lvl)
+    font    <- openFont "fonts/steelpla.ttf" 24
+    timer   <- start defaultTimer
+    return (GameConfig screen sprites font, GameData timer room (startPos room) lvl)
     where room = currentRoom { 
                     walls = foldTiles (tiles currentRoom) 
             }
@@ -193,7 +205,7 @@ newGame lvl = do
 levelUp :: GameData -> GameData
 levelUp gd = gd { level = newLevel, room = nextRoom, player = (startPos nextRoom) }
             where 
-                newLevel = ((level gd) + 1) `mod` (length rooms)
+                newLevel = (level gd) + 1
                 nextRoom = rooms !! ((level gd) `mod` (length rooms))
 
 
@@ -225,6 +237,11 @@ getSpriteSheetOffset n = Just (Rect offx offy 32 32)
                             where 
                                 offx = n * 32
                                 offy = 0
+
+
+applySurface :: Int -> Int -> Surface -> Surface -> Maybe Rect -> IO Bool
+applySurface x y src dst clip = blitSurface src clip dst offset
+    where offset = Just Rect { rectX = x, rectY = y, rectW = 0, rectH = 0 }
 
 
 drawSprite :: Surface -> Surface -> Int -> Int -> Int -> IO Bool
@@ -334,11 +351,14 @@ handleKeyboard _ d = d
 
 loop :: GameEnv ()
 loop = do
-    timer     <- getTimer
-    screen     <- getScreen
+    timer   <- getTimer
+    screen  <- getScreen
     sprites <- getSprites
     pos     <- getPlayer
-    room     <- getRoom
+    room    <- getRoom
+    font    <- getFont
+    level   <- getLevel
+    message <- liftIO $ renderTextSolid font ("level " ++ (show level)) textColor
 
     modifyTimerM $ liftIO . start
     quit <- whileEvents $ modifyGameData . handleKeyboard
@@ -352,6 +372,9 @@ loop = do
         drawTargets screen sprites (targets room)
         drawBoxes screen sprites (boxes room)
         drawPlayer screen sprites (x pos) (y pos)
+
+        applySurface 300 3 message screen Nothing
+
         Graphics.UI.SDL.flip screen
 
         ticks <- getTimerTicks timer
@@ -362,6 +385,7 @@ loop = do
     framesPerSecond = 30
     secsPerFrame = 1000 `div` framesPerSecond
     mapRGB' = mapRGB . surfaceGetPixelFormat
+
 
 whileEvents :: MonadIO m => (Event -> m ()) -> m Bool
 whileEvents act = do
@@ -379,5 +403,9 @@ runLoop = evalStateT . runReaderT loop
 
 
 main = withInit [InitEverything] $ do -- withInit calls quit for us.
-    (gc, gd) <- newGame startLevel
-    runLoop gc gd
+    result <- TTFG.init
+    if not result
+        then putStr "Failed to init ttf\n"
+        else do
+            (gc, gd) <- newGame startLevel
+            runLoop gc gd
