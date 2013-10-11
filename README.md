@@ -1,8 +1,10 @@
 Boxxle Haskell 
 =============================
 
-Keys
-=======
+A small remake of the GameBoy Game Boxxle, So far only the first 5 levels are included.
+
+***Keys***
+
 Arrows - Move<br/>
 R - Reset
 
