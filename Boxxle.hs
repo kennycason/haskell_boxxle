@@ -35,8 +35,7 @@ levels = [
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		]
-		,
-		walls = -- TODO create a function that maps [[Int]] -> [Coord]
+		,walls = -- TODO create a function that maps [[Int]] -> [Coord]
 		[(Coord 3 3), (Coord 4 3), (Coord 5 3), (Coord 6 3), (Coord 7 3)
 		,(Coord 3 4),                                        (Coord 7 4)	
 		,(Coord 3 5),                                        (Coord 7 5),              (Coord 9 5), (Coord 10 5), (Coord 11 5)	
@@ -50,8 +49,8 @@ levels = [
 		,boxes = [(Coord 5 5), (Coord 6 5), (Coord 5 6)]
 		,targets = [(Coord 10 6), (Coord 10 7), (Coord 10 8)]
 		,startPos = (Coord 4 4)
-	}]
-{-	,Room {
+	}
+	,Room {
 		tiles = 
 		[[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
@@ -69,10 +68,12 @@ levels = [
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 		]
+		,walls = -- TODO create a function that maps [[Int]] -> [Coord]
+		[(Coord 3 3)]
 		,boxes = [(Coord 5 7), (Coord 8 7), (Coord 7 6), (Coord 7 5)]
 		,targets = [(Coord 6 6), (Coord 7 6), (Coord 6 7), (Coord 7 7)]
 		,startPos = (Coord 6 4)
-	}]-}
+	}]
 
 tEmpty 	= 0
 tBrick 	= 1
@@ -92,7 +93,7 @@ data Room = Room { tiles :: [[Int]], walls :: [Coord], boxes :: [Coord], targets
 data GameData = GameData {
 	timer :: Timer,
 	room :: Room,
-	playerPos :: Coord
+	player :: Coord
 }		
 
 data GameConfig = GameConfig {
@@ -122,8 +123,8 @@ getSprites :: MonadReader GameConfig m => m Surface
 getSprites = liftM sprites ask
 
 
-getPlayerPos :: MonadState GameData m => m Coord
-getPlayerPos = gets playerPos
+getPlayer :: MonadState GameData m => m Coord
+getPlayer = gets player
 
 getTimer :: MonadState GameData m => m Timer
 getTimer = gets timer
@@ -177,7 +178,6 @@ drawPlayer screen sprites x y = blitSurface sprites src screen dst
 									src = (getSpriteSheetOffset tPlayer)
 									dst = Just (Rect (x * 32) (y * 32) 32 32)
 
-
 drawBoxes :: Surface -> Surface -> [Coord] -> IO()
 drawBoxes screen sprites boxes = mapM_ (\c -> drawSprite screen sprites tBox ((x c) * 32) ((y c) * 32) ) boxes
 
@@ -189,8 +189,10 @@ drawTargets screen sprites targets = mapM_ (\c -> drawSprite screen sprites tTar
 isWin :: [Coord] -> [Coord] -> Bool
 isWin boxes targets = False
 
+
 collide :: Coord -> Coord -> Bool
 collide c1 c2 = ((x c1) == (x c2)) && ((y c1) == (y c2))
+
 
 offsetCoord :: Coord -> Move -> Coord
 offsetCoord c@Coord{ x = x, y = y } move = c { x = x + (dx move), y = y + (dy move) } 
@@ -198,42 +200,65 @@ offsetCoord c@Coord{ x = x, y = y } move = c { x = x + (dx move), y = y + (dy mo
 
 collideWithWorld :: Coord -> Room -> Bool
 collideWithWorld c room = (foldr (||) False (map (collide c) (walls room)))
-							
+	
+
+collideWithBoxes :: Coord -> Room -> Bool
+collideWithBoxes c room = (foldr (||) False (map (collide c) (boxes room)))	
+
+
+canBoxMove :: Coord -> Room -> Bool			
+canBoxMove box room = not ((collideWithWorld box room) || (collideWithBoxes box room))
+
 
 movePlayer :: Move -> GameData -> GameData
-movePlayer move gd 	| collideWithWorld (offsetCoord origPos move) (room gd) = gd
-					| otherwise = gd { playerPos = Coord { x = (x origPos) + (dx move), y = (y origPos) + (dy move)} }
-					where origPos = (playerPos gd)
+movePlayer move gd 	| collideWithWorld newPlayerPos (room gd) = gd
+					| otherwise = gd { player = Coord { x = (x playerPos) + (dx move), y = (y playerPos) + (dy move)} }
+					where 
+						playerPos = (player gd)
+						newPlayerPos = (offsetCoord playerPos move)
+
+
+moveBox :: Move -> Coord -> Coord
+moveBox move box@Coord { x = x, y = y } = box { x = x + (dx move), y = y + (dy move) }
 
 
 checkBox :: Room -> Coord -> Move -> Coord -> Coord
-checkBox room pos move box@Coord { x = x, y = y } 	
-								| collided && d == UP && not boxCollided = box {y = y - 1}
-								| collided && d == DOWN && not boxCollided = box {y = y + 1}
-								| collided && d == LEFT && not boxCollided = box {x = x - 1}
-								| collided && d == RIGHT && not boxCollided = box {x = x + 1}
+checkBox room playerPos move box| collidedWithPlayer && (dir move) == UP && boxCanMove = moveBox move box
+								| collidedWithPlayer && (dir move) == DOWN && boxCanMove = moveBox move box
+								| collidedWithPlayer && (dir move) == LEFT && boxCanMove = moveBox move box
+								| collidedWithPlayer && (dir move) == RIGHT && boxCanMove = moveBox move box
 								| otherwise = box
 									where 
-										collided = collide pos box -- player collided
-										boxCollided = (collideWithWorld (offsetCoord box move) room)
-										d = (dir move)
+										collidedWithPlayer = collide playerPos box -- player collided
+										boxCanMove = canBoxMove newBoxPos room
+											where newBoxPos = offsetCoord box move
 
 
 checkBoxes :: Room -> Coord -> Move -> [Coord] -> [Coord]
-checkBoxes room pos move boxes = map (checkBox room pos move) boxes
+checkBoxes room playerPos move boxes = map (checkBox room playerPos move) boxes
 
-moveBox :: Move -> GameData -> GameData
-moveBox move gd@GameData{ room = room@Room {boxes = boxes} } = gd { room = room { boxes = (checkBoxes room origPos move boxes) } }
-																where origPos = (playerPos gd)
+
+handleBoxes :: Move -> GameData -> GameData
+handleBoxes move gd@GameData{ room = room@Room {boxes = boxes} } = gd { room = room { boxes = (checkBoxes room playerPos move boxes) } }
+																where playerPos = offsetCoord (player gd) move
+
+
+-- if the resulting move yields the player standing on a box, undo it
+undoPlayer :: Move -> GameData -> GameData
+undoPlayer move gd 	| collideWithBoxes playerPos (room gd) = gd { player = Coord { x = (x playerPos) - (dx move), y = (y playerPos) - (dy move)} }
+					| otherwise = gd
+					where 
+						playerPos = (player gd)
+
 
 handleKeyboard :: Event -> GameData -> GameData
-handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = ((moveBox move).(movePlayer move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_UP _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move)) gd
 													where move = Move { dir = UP, dx = 0, dy = -1 }
-handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = ((moveBox move).(movePlayer move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_DOWN _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move)) gd
 													where move = Move { dir = DOWN, dx = 0, dy = 1 }
-handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((moveBox move).(movePlayer move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_LEFT _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move)) gd
 													where move = Move { dir = LEFT, dx = -1, dy = 0 }
-handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((moveBox move).(movePlayer move)) gd
+handleKeyboard (KeyDown (Keysym SDLK_RIGHT _ _)) gd = ((undoPlayer move).(movePlayer move).(handleBoxes move))  gd
 													where move = Move { dir = RIGHT, dx = 1, dy = 0 }
 handleKeyboard _ d = d
 
@@ -243,7 +268,7 @@ loop = do
 	timer <- getTimer
 	screen <- getScreen
 	sprites <- getSprites
-	pos <- getPlayerPos
+	pos <- getPlayer
 	room <- getRoom
 
 	modifyTimerM $ liftIO . start
