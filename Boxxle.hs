@@ -15,138 +15,23 @@ import Control.Monad.Reader
 
 import Timer
 
--- game data
--- levels from: http://www.gamefaqs.com/gameboy/585643-boxxle/faqs/52416
+import Types
+import Levels
 
-rooms = [
-    roomBuilder 
-        [[1,1,1,1,1,0,0,0,0]                    -- map tiles
-        ,[1,0,0,0,1,0,0,0,0]
-        ,[1,0,0,0,1,0,1,1,1]
-        ,[1,0,0,0,1,0,1,4,1]
-        ,[1,1,1,0,1,1,1,4,1]
-        ,[0,1,1,0,0,0,0,4,1]
-        ,[0,1,0,0,0,1,0,0,1]
-        ,[0,1,0,0,0,1,1,1,1]
-        ,[0,1,1,1,1,1,0,0,0]
-        ]
-        [(Coord 2 2), (Coord 3 2), (Coord 2 3)] -- boxes
-        [(Coord 7 3), (Coord 7 4), (Coord 7 5)] -- targets
-        (Coord 1 1)                                -- start pos
-    ,roomBuilder
-        [[1,1,1,1,1,1,1,1,1,1]
-        ,[1,4,4,0,0,0,0,0,0,1]
-        ,[1,4,4,0,0,0,1,0,0,1]
-        ,[1,0,0,1,0,1,1,0,1,1]
-        ,[1,0,0,0,0,0,0,0,1,0]
-        ,[1,1,1,1,1,0,1,0,1,0]
-        ,[0,0,1,0,0,0,0,0,1,0]
-        ,[0,0,1,0,0,0,0,0,1,0]
-        ,[0,0,1,1,1,1,1,1,1,0]
-        ]
-        [(Coord 3 2), (Coord 4 3), (Coord 2 4), (Coord 4 6)]
-        [(Coord 1 1), (Coord 2 1), (Coord 1 2), (Coord 2 2)]
-        (Coord 1 1)
-    ,roomBuilder
-        [[0,1,1,1,1,0]
-        ,[1,1,0,0,1,0]
-        ,[1,0,0,0,1,0]
-        ,[1,1,0,0,1,1]
-        ,[1,1,0,0,0,1]
-        ,[1,4,0,0,0,1]
-        ,[1,4,4,0,4,1]
-        ,[1,1,1,1,1,1]
-        ]
-        [(Coord 2 2), (Coord 2 3), (Coord 3 4), (Coord 2 5)]
-        [(Coord 1 5), (Coord 1 6), (Coord 2 6), (Coord 4 6)]
-        (Coord 1 2)
-    ,roomBuilder
-        [[0,1,1,1,1,1,0,0]
-        ,[0,1,0,0,1,1,1,0]
-        ,[0,1,0,0,0,0,1,0]
-        ,[1,1,1,0,1,0,1,1]
-        ,[1,4,1,0,1,0,0,1]
-        ,[1,4,0,0,0,1,0,1]
-        ,[1,4,0,0,0,0,0,1]
-        ,[1,1,1,1,1,1,1,1]
-        ]
-        [(Coord 3 2), (Coord 2 5), (Coord 5 6)]
-        [(Coord 1 4), (Coord 1 5), (Coord 1 6)]
-        (Coord 2 1)
-    ,roomBuilder
-        [[0,1,1,1,1,1,1,1,0,0]
-        ,[0,1,0,0,0,0,0,1,1,1]
-        ,[1,1,0,1,1,1,0,0,0,1]
-        ,[1,0,0,0,0,0,0,0,0,1]
-        ,[1,0,4,4,1,0,0,0,1,1]
-        ,[1,1,4,4,1,0,0,0,1,0]
-        ,[0,1,1,1,1,1,1,1,1,0]
-        ]
-        [(Coord 2 2), (Coord 4 3), (Coord 6 3), (Coord 5 4)]
-        [(Coord 2 4), (Coord 3 4), (Coord 2 5), (Coord 3 5)]
-        (Coord 2 1)
-    ]
+-- level data at end of file
 
-roomBuilder ::[[Int]] -> [Coord] -> [Coord] -> Coord -> Room
-roomBuilder tiles boxes targets startPos = Room {
-        tiles = tiles
-        ,walls = foldTiles tiles
-        ,boxes = boxes
-        ,targets = targets
-        ,startPos = startPos
-    }
-
+rooms = loadLevels
 
 -- global constants
-startLevel = 1
+startLevel  = 1
 
-tEmpty     = 0
-tBrick     = 1
-tBox     = 2
+tEmpty  = 0
+tBrick  = 1
+tBox    = 2
 tPlayer = 3
-tTarget    = 4
+tTarget = 4
 
 textColor = Color 0x33 0x33 0x33
-
-
--- type defines
-data Direction = UP | DOWN | LEFT | RIGHT deriving (Eq, Enum)
-
-data Move = Move { 
-    dir :: Direction
-    ,dx :: Int
-    ,dy :: Int 
-}
-
-data Coord = Coord { 
-    x :: Int
-    ,y :: Int 
-} deriving (Eq)
-
-data Room = Room { 
-    tiles :: [[Int]]
-    ,walls :: [Coord]
-    ,boxes :: [Coord]
-    ,targets :: [Coord]
-    ,startPos :: Coord 
-}
-
-data GameData = GameData {
-    timer :: Timer
-    ,room :: Room
-    ,player :: Coord
-    ,level :: Int
-}        
-
-data GameConfig = GameConfig {
-    screen :: Surface
-    ,sprites :: Surface
-    ,front :: Font
-    ,music :: Music
-}
-
-type GameState = StateT GameData IO
-type GameEnv = ReaderT GameConfig GameState
 
 
 -- monad state get/put/modify 
@@ -190,8 +75,7 @@ getFont = liftM front ask
 -- main functions
 newGame :: Int -> IO (GameConfig, GameData)
 newGame lvl = do
-    -- setVideoMode 320 288 32 []
-    setVideoMode 448 352 32 []
+    setVideoMode 640 576 32 []
     setCaption "Boxxle - Haskell" []
     screen  <- getVideoSurface
     sprites <- loadBMP "img/boxxle.bmp"
@@ -202,10 +86,7 @@ newGame lvl = do
     music   <- loadMUS "music/main.wav"
     playMusic music (-1)
     return (GameConfig screen sprites font music, GameData timer room (startPos room) lvl)
-    where room = currentRoom { 
-                    walls = foldTiles (tiles currentRoom) 
-            }
-            where currentRoom = (rooms !! (lvl - 1))
+    where room = (rooms !! (lvl - 1))
 
 
 levelUp :: GameData -> GameData
@@ -227,15 +108,6 @@ handleWin gd| isWin = levelUp gd
                                         (boxes currentRoom) 
                                         (targets currentRoom)) == length (targets currentRoom)
                                             where currentRoom = (room gd)
-
-
-foldTiles :: [[Int]] -> [Coord]
-foldTiles tiles =
-  [Coord x y                         -- generate a Coord pair
-    | (y, row) <- enumerate tiles    -- for each row with its coordinate
-    , (x, tile) <- enumerate row     -- for each tile in the row (with coordinate)
-    , tile == 1]                     -- if the tile is 1
-        where enumerate = zip [0..]
 
 
 getSpriteSheetOffset :: Int -> Maybe Rect
@@ -371,7 +243,7 @@ loop = do
 
     liftIO $ do
         bgRect    <- Just `liftM` getClipRect screen
-        white     <- mapRGB' screen 0xff 0xff 0xff
+        white     <- mapRGB' screen 0xf8 0xf8 0xf8
         fillRect screen bgRect white
 
         drawBricks screen sprites (walls room)
@@ -379,7 +251,7 @@ loop = do
         drawBoxes screen sprites (boxes room)
         drawPlayer screen sprites (x pos) (y pos)
 
-        applySurface 340 3 message screen Nothing
+        applySurface 520 3 message screen Nothing
 
         Graphics.UI.SDL.flip screen
 
