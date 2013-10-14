@@ -69,7 +69,7 @@ loadLevels = [
         ] -- tiles
         [(Coord 2 2),(Coord 2 3),(Coord 3 4),(Coord 2 5)] -- boxes
         [(Coord 1 5),(Coord 1 6),(Coord 2 6),(Coord 4 6)] -- targets
-        (Coord 2 1) -- start pos
+        (Coord 1 2) -- start pos
     ,roomBuilder
         [[0,1,1,1,1,1,0,0,0,0]
         ,[0,1,0,0,1,1,1,0,0,0]
@@ -630,4 +630,5 @@ loadLevels = [
         [(Coord 2 3),(Coord 4 3),(Coord 6 3),(Coord 8 3),(Coord 10 3),(Coord 12 3),(Coord 1 4),(Coord 3 4),(Coord 5 4),(Coord 7 4),(Coord 9 4),(Coord 11 4),(Coord 2 5),(Coord 4 5),(Coord 6 5),(Coord 8 5),(Coord 10 5),(Coord 12 5),(Coord 1 6),(Coord 3 6),(Coord 5 6),(Coord 7 6),(Coord 9 6),(Coord 11 6)] -- boxes
         [(Coord 1 1),(Coord 2 1),(Coord 11 1),(Coord 12 1),(Coord 2 2),(Coord 4 2),(Coord 5 2),(Coord 6 2),(Coord 7 2),(Coord 8 2),(Coord 10 2),(Coord 12 2),(Coord 1 7),(Coord 3 7),(Coord 5 7),(Coord 6 7),(Coord 7 7),(Coord 8 7),(Coord 9 7),(Coord 11 7),(Coord 1 8),(Coord 2 8),(Coord 11 8),(Coord 12 8)] -- targets
         (Coord 6 4) -- start pos
+
 	]
