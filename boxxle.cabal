@@ -1,0 +1,16 @@
+Name: Boxxle
+Version: 0.0.1
+Cabal-Version: >= 1.2
+Build-Type: Simple
+License: BSD3
+Author:  Kenny Cason
+Synopsis: Sokoban game
+Category: Game
+
+Executable boxxle
+    Main-is: Boxxle.hs
+    Build-Depends: base,
+                   mtl,
+                   SDL,
+                   SDL-mixer,
+                   SDL-ttf
